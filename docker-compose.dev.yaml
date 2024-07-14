@@ -1,0 +1,14 @@
+services:
+  telegram-bot:
+    container_name: telegram-bot
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: dev
+    volumes:
+      - ./app:/usr/app
+    env_file:
+      - ./.env
+    tty: true
+    # command: [ "python3", "/usr/app/bot.py" ]
+    command: [ "/bin/bash" ]

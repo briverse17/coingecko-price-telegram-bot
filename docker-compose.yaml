@@ -1,0 +1,19 @@
+services:
+  telegram-bot:
+    container_name: telegram-bot
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: prod
+    volumes:
+      - cache:/usr/app/cache
+    env_file:
+      - ./.env
+
+volumes:
+  cache:
+    driver: local
+    driver_opts:
+      o: bind
+      type: mount
+      device: ./app/cache
