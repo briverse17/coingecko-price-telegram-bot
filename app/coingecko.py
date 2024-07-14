@@ -160,7 +160,6 @@ class CoinGeckoService:
 
 def format_price(value: int, currency: str = "usd"):
     """Format the price in the locale of currency"""
-    # _, symbol, _, locale = CURRENCY_MAP[currency].values()
     return f"<b>{format_currency(value, currency, '#,##0.00 ¤¤')}</b>"
 
 
