@@ -59,7 +59,7 @@ MAIN_MENU_MARKUP = InlineKeyboardMarkup(
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Handle the /start command
-    
+
     Return the usage
     """
     await update.message.reply_text(

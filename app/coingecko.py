@@ -7,7 +7,7 @@ from datetime import UTC, datetime
 from typing import Dict, List
 
 import requests
-from babel.numbers import format_currency, get_currency_name
+from babel.numbers import format_currency
 from humanize import naturaltime
 
 # Enable logging
@@ -103,7 +103,7 @@ class CoinGeckoService:
         return self.coins[coin]
 
     def check_currency(self, currency: str = "bitcoin"):
-        """Check if the coin is supported by CoinGecko"""
+        """Check if the currency is supported by CoinGecko"""
         if currency not in self.currencies:
             raise UnsupportedCurrency(f"Unsupported currency <code>{currency}</code>")
         return currency
@@ -148,22 +148,14 @@ class CoinGeckoService:
             f"{heading}"
             f"\n<code>1 {symbol.upper()} = {value} {currency.upper()}</code>"
             "\n"
-            f"\nLast updated: {format_time(epoch)}"
+            f"\nLast updated: {self.format_time(epoch)}"
         )
 
         others = [c for c in coins if c["name"] != name]
 
-        # result += f"\nOthers <code>{symbol.upper()}</code>s: \n- {others}"
-
         return result, others
 
-
-def format_price(value: int, currency: str = "usd"):
-    """Format the price in the locale of currency"""
-    return f"<b>{format_currency(value, currency, '#,##0.00 ¤¤')}</b>"
-
-
-def format_time(epoch: int):
-    """Format the time of the last updated price"""
-    delta = datetime.now(UTC) - datetime.fromtimestamp(epoch, tz=UTC)
-    return f"<i>{naturaltime(delta)}</i>"
+    def format_time(self, epoch: int):
+        """Format the time of the last updated price"""
+        delta = datetime.now(UTC) - datetime.fromtimestamp(epoch, tz=UTC)
+        return f"<i>{naturaltime(delta)}</i>"
