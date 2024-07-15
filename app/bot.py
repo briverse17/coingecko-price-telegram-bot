@@ -58,6 +58,10 @@ MAIN_MENU_MARKUP = InlineKeyboardMarkup(
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Handle the /start command
+    
+    Return the usage
+    """
     await update.message.reply_text(
         MAIN_MENU,
         parse_mode=ParseMode.HTML,
@@ -69,15 +73,33 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 async def price(
     update: Update,
     context: ContextTypes.DEFAULT_TYPE,
-    coin: str = None,
+    symbol: str = None,
     _id: str = None,
     name: str = None,
     currency: str = None,
     allow_override: str = True,
 ) -> None:
-    """Handle the /p | /price commands."""
+    """Handle the /p | /price commands
 
-    coin = coin if coin else context.args[0] if len(context.args) > 0 else COIN
+    Args:
+    ---
+        `symbol`: str
+            Symbol of the coin, e.g. btc, eth
+        `_id`: str
+            CoinGecko specific ID, e.g. bitcoin, ethereum
+        `name`: str
+            CoinGecko display name
+        `currency`: str
+            The currency to request for
+        `allow_override`: bool
+            There are coins with the same symbol.
+            Here we override the two most common which is
+            "btc" and "eth" to "bitcoin" and "ethereum".
+            To explicitly query a coin, we feed in the `_id`
+            and set this param to `False` to disable overriding.
+    """
+
+    symbol = symbol if symbol else context.args[0] if len(context.args) > 0 else COIN
     currency = (
         currency
         if currency
@@ -89,17 +111,17 @@ async def price(
     logger.info(
         "%s asked for %s price in %s",
         update.effective_user.first_name,
-        name if name else coin.upper(),
+        name if name else symbol.upper(),
         currency.upper(),
     )
     try:
-        result, others = SERVICE.get_price(coin, _id, name, currency, allow_override)
+        result, others = SERVICE.get_price(symbol, _id, name, currency, allow_override)
         await context.bot.send_message(
             update.effective_chat.id, result, parse_mode=ParseMode.HTML
         )
 
         if others:
-            msg = f"Check other coins with the same symbol <b>{coin.upper()}</b>"
+            msg = f"Check other coins with the same symbol <b>{symbol.upper()}</b>"
             await context.bot.send_message(
                 update.effective_chat.id,
                 msg,
@@ -109,7 +131,7 @@ async def price(
                         [
                             InlineKeyboardButton(
                                 c["name"],
-                                callback_data="&&".join((coin, c["id"], currency)),
+                                callback_data="&&".join((symbol, c["id"], currency)),
                             )
                         ]
                         for c in others[:3]
@@ -126,25 +148,25 @@ async def price(
 
 
 async def btc(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Handle the /btc command.
+    """Handle the /btc command
 
-    Quickly get the Bitcoin price in the current currency without changing state
+    Quickly get the Bitcoin price in the current currency
     """
     currency = context.args[0] if context.args and len(context.args) == 1 else CURRENCY
     await price(update, context, "btc", currency=currency)
 
 
 async def eth(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Handle the /eth command.
+    """Handle the /eth command
 
-    Quickly get the Ethereum price in the current currency without changing state
+    Quickly get the Ethereum price in the current currency
     """
     currency = context.args[0] if context.args and len(context.args) == 1 else CURRENCY
     await price(update, context, "eth", currency=currency)
 
 
 async def coins(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Handle the /coins command.
+    """Handle the /coins command
 
     Return the Google Spreadsheet link to the list of coins
     """
@@ -156,9 +178,9 @@ async def coins(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 
 async def currencies(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Handle the /coins command.
+    """Handle the /currencies command
 
-    Return the Google Spreadsheet link to the list of coins
+    Return the list of `vs_currencies` from CoinGecko
     """
     await context.bot.send_message(
         update.effective_chat.id,
@@ -172,7 +194,7 @@ async def currencies(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
 
 
 async def handle_button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Handle button press."""
+    """Handle button press"""
 
     await update.callback_query.answer()
     if "&&" not in update.callback_query.data:
@@ -190,6 +212,7 @@ async def handle_button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
                     update.callback_query.data,
                 )
     else:
+        # Explicit coin query
         name = None
         for row in update.callback_query.message.reply_markup.inline_keyboard:
             for button in row:
@@ -199,14 +222,12 @@ async def handle_button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
             if name:
                 break
         coin, _id, currency = update.callback_query.data.split("&&")
-        # logger.info("%s, %s, %s, %s", coin, _id, name, currency)
         await price(update, context, coin, _id, name, currency, False)
 
 
 def main() -> None:
     """Run the bot."""
 
-    # Create the Application and pass it your bot's token.
     application = Application.builder().token(TELEGRAM_BOT_API_TOKEN).build()
 
     application.add_handler(CommandHandler("start", start))
@@ -217,7 +238,6 @@ def main() -> None:
     application.add_handler(CommandHandler("currencies", currencies))
     application.add_handler(CallbackQueryHandler(handle_button))
 
-    # Run the bot until the user presses Ctrl-C
     application.run_polling(allowed_updates=Update.ALL_TYPES)
 
 
